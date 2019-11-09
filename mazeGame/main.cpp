@@ -59,6 +59,21 @@ public:
     }
 };
 
+// треба доробити
+class MakeMaze
+{
+private:
+    char **maze;
+public:
+    MakeMaze(char **canvas)
+        : maze{canvas}
+    {
+
+    }
+
+    // 1 - up, 2 - down, 3 - left, 4 - right
+};
+
 class Key : public Character
 {
 private:
@@ -91,7 +106,7 @@ private:
 
 public:
     // length - довжина =>
-    // width - ширина \/
+    // width - ширина V
     PlayGround(int a, int b, int startPositionX = 1, int startPositionY = 1):
         mWidth{a}, mLength{b},
         mPlayer(startPositionX, startPositionY),
@@ -128,6 +143,9 @@ public:
                 }
             }
 
+        MakeMaze Maze(m);
+
+        //m = Maze.create(mPlayer.getX(), mPlayer.getY(), 3);
         m[mKey.getX()][mKey.getY()] = mKey.getCharacter();
         m[mPlayer.getY()][mPlayer.getX()] = mPlayer.getCharacter();
 
@@ -140,6 +158,7 @@ public:
             delete [] mPlayGround[0];
             delete [] mPlayGround;
     }
+
 
     char **getPlayGround()
     {
@@ -223,6 +242,8 @@ public:
 
         bool endOfGame{0};
 
+        while (true)
+        {
         std::cout << "Input number of rows: ";
 
         while (!(std::cin >> i))
@@ -259,12 +280,24 @@ public:
 
             if (endOfGame)
             {
+                std::cout << "Congratulations!\n";
+                std::cout << "You win!\n";
+
                 break;
             }
         }
 
-        std::cout << "Congratulations!\n";
-        std::cout << "You win!\n";
+        std::cout << "Play again? [Y/n]\n";
+        char response = 'n';
+        std::cout << "Your response: ";
+        std::cin >> response;
+
+        if (response == 'N' || response == 'n')
+        {
+            break;
+        }
+      }
+
     }
 };
 
