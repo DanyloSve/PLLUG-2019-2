@@ -176,8 +176,6 @@ public:
     {
 
     }
-
-    // 1 - up, 2 - down, 3 - left, 4 - right
 };
 
 class PlayGround
@@ -185,11 +183,13 @@ class PlayGround
 private:
     char **mPlayGround;
 
-    const int mWidth;
-    const int mLength;
+    int mWidth;
+    int mLength;
 
     int mPlayerMoveX;
     int mPlayerMoveY;
+
+    int mLevel;
 
     Player mPlayer;
 
@@ -198,39 +198,66 @@ private:
 public:
     // length - довжина =>
     // width - ширина V
-    PlayGround(int a, int b, int startPositionX = 1, int startPositionY = 1, bool keyIsFound = 0):
-        mWidth{a}, mLength{b},
+    PlayGround(int a, int b, int startPositionX = 1, int startPositionY = 1, bool keyIsFound = 0, int startLevel = 1):
+        mWidth{a}, mLength{b}, mLevel{1},
         mPlayer(startPositionX, startPositionY, keyIsFound, a * b / 2)
     {
+
+    }
+
+    ~PlayGround()
+    {
+            delete [] mPlayGround[0];
+            delete [] mPlayGround;
+    }
+
+    bool upgradeLevel()
+    {
+        if (mLength / mLevel > 2 && mWidth / mLevel > 0)
+        {
+            mLevel++;
+            mPlayer.changePoints(-1000);
+            mPlayer.changePoints(mWidth * mLength / 2);
+            return 1;
+        }
+        return 0;
+    }
+
+    bool createPlayGround()
+    {
+
+        mWidth /= mLevel;
+        mLength /= mLevel;
+
         char **m = new char *[mWidth];
         m[0] = new char[mWidth * mLength];
 
-            for (int j(1); j != mWidth; ++j)
-            {
-                m[j] = m [j - 1] + mLength;
-            }
+        for (int j(1); j != mWidth; ++j)
+        {
+            m[j] = m [j - 1] + mLength;
+        }
 
-            // i = y; j = x
-            for (int i(0); i != mWidth; i++)
-            {
+        // i = y; j = x
+        for (int i(0); i != mWidth; i++)
+        {
 
-                for (int j(0); j != mLength; j++)
+            for (int j(0); j != mLength; j++)
+            {
+                if (i == 0 || i == mWidth - 1)
                 {
-                    if (i == 0 || i == mWidth - 1)
-                    {
-                     m[i][j] = WALL;
+                    m[i][j] = WALL;
 
-                    }
-                    else if (j == 0 || j == mLength - 1)
-                    {
-                        m[i][j] = WALL;
-                    }
-                    else
-                    {
-                        m[i][j] = ' ';
-                    }
+                }
+                else if (j == 0 || j == mLength - 1)
+                {
+                    m[i][j] = WALL;
+                }
+                else
+                {
+                    m[i][j] = ' ';
                 }
             }
+        }
 
         //MakeMaze Maze(m);
 
@@ -239,19 +266,13 @@ public:
         m[GetRandomNumber::returnRandomNumber(2, mWidth - 2)]
                 [GetRandomNumber::returnRandomNumber(2, mWidth - 2)] = mPrize.getSign();
         m[GetRandomNumber::returnRandomNumber(2, mWidth - 2)]
-        [GetRandomNumber::returnRandomNumber(2, mLength - 2)] = KEY;
+                [GetRandomNumber::returnRandomNumber(2, mLength - 2)] = KEY;
 
         m[mWidth - 1][mLength/2] = EXIT;
         m[mPlayer.getY()][mPlayer.getX()] = mPlayer.getCharacter();
 
         mPlayGround = m;
         m = nullptr;
-    }
-
-    ~PlayGround()
-    {
-            delete [] mPlayGround[0];
-            delete [] mPlayGround;
     }
 
     int getPlayerPoints()
@@ -298,7 +319,7 @@ public:
 
         move(direction);
 
-        int decreaseMovePoints = -5;
+        int decreaseMovePoints = -1 * mLevel;
 
         mPlayer.changePoints(decreaseMovePoints);
 
@@ -390,7 +411,7 @@ public:
         }
 
         PlayGround A(i, j);
-
+        A.createPlayGround();
         A.vizualize();
 
         while (true)
