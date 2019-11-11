@@ -1,6 +1,11 @@
 #include <iostream>
 #include <random>
 
+#define EXIT '#'
+#define WALL 'X'
+#define KEY 'k'
+#define EMPTYSIGN ' '
+
 struct GetRandomNumber
 {
     static int returnRandomNumber(int min, int max)
@@ -39,13 +44,36 @@ public:
 class Player : public Character
 {
 private:
-    const char mSign = '@';
+    const char mSign{'@'};
+
+    int  mPoints;
+    bool mKeyIsFound;
 
 public:
-     Player(int x, int y) : Character(x, y)
+    Player(int x, int y, bool keyIsFound, int startPoints) : Character(x, y), mKeyIsFound{keyIsFound}, mPoints{startPoints}
      {
 
      }
+
+    void changePoints(int change)
+    {
+        this->mPoints += change;
+
+        if ( change <= 0)
+        {
+            if (mPoints <= 0)
+            {
+                mPoints = 0;
+            }
+
+        }
+
+    }
+
+    int getPoints()
+    {
+        return mPoints;
+    }
 
     void setNewPosition(int x, int y)
     {
@@ -57,6 +85,84 @@ public:
     {
         return mSign;
     }
+
+    void takeKey()
+    {
+        this->mKeyIsFound = 1;
+    }
+
+    bool hasKey()
+    {
+        return mKeyIsFound;
+    }
+};
+
+class PrizeIteam
+{
+private:
+    int mSign;
+
+    const char mFirstSign {'1'};
+    const char mSecondSign {'2'};
+    const char mThirdSign {'3'};
+
+    const int mFirstPrize {10};
+    const int mSecondPrize{25};
+    const int mThirdPrize{35};
+
+public:
+    PrizeIteam(int sign = 1): mSign{sign}
+    {
+
+    }
+
+    char getSign()
+    {
+
+        switch (mSign)
+        {
+        case 1:
+            return  mFirstSign;
+        case 2:
+            return  mSecondSign;
+        case 3:
+            return mThirdSign;
+        }
+        return EMPTYSIGN;
+    }
+
+    char changePrizeSign()
+    {
+        mSign++;
+
+        switch (mSign)
+        {
+        case 1:
+            return  mFirstSign;
+        case 2:
+            return  mSecondSign;
+        case 3:
+            return mThirdSign;
+        }
+        return EMPTYSIGN;
+    }
+
+    int deservedPoints()
+    {
+        switch (mSign)
+        {
+        case 1:
+            return  mFirstPrize;
+        case 2:
+            return  mSecondPrize;
+        case 3:
+            return mThirdPrize;
+        }
+
+        return 0;
+    }
+
+
 };
 
 // треба доробити
@@ -74,27 +180,11 @@ public:
     // 1 - up, 2 - down, 3 - left, 4 - right
 };
 
-class Key : public Character
-{
-private:
-    const char mSign = 'k';
-
-public:
-    Key(int x, int y) : Character(x, y)
-    {
-
-    }
-
-    char getCharacter()
-    {
-        return mSign;
-    }
-};
-
 class PlayGround
 {
 private:
     char **mPlayGround;
+
     const int mWidth;
     const int mLength;
 
@@ -102,16 +192,15 @@ private:
     int mPlayerMoveY;
 
     Player mPlayer;
-    Key mKey;
+
+    PrizeIteam mPrize;
 
 public:
     // length - довжина =>
     // width - ширина V
-    PlayGround(int a, int b, int startPositionX = 1, int startPositionY = 1):
+    PlayGround(int a, int b, int startPositionX = 1, int startPositionY = 1, bool keyIsFound = 0):
         mWidth{a}, mLength{b},
-        mPlayer(startPositionX, startPositionY),
-        mKey(GetRandomNumber::returnRandomNumber(2, mWidth - 2),
-             GetRandomNumber::returnRandomNumber(2, mLength - 2))
+        mPlayer(startPositionX, startPositionY, keyIsFound, a * b / 2)
     {
         char **m = new char *[mWidth];
         m[0] = new char[mWidth * mLength];
@@ -129,12 +218,12 @@ public:
                 {
                     if (i == 0 || i == mWidth - 1)
                     {
-                     m[i][j] = '#';
+                     m[i][j] = WALL;
 
                     }
                     else if (j == 0 || j == mLength - 1)
                     {
-                        m[i][j] = '#';
+                        m[i][j] = WALL;
                     }
                     else
                     {
@@ -143,10 +232,16 @@ public:
                 }
             }
 
-        MakeMaze Maze(m);
+        //MakeMaze Maze(m);
 
         //m = Maze.create(mPlayer.getX(), mPlayer.getY(), 3);
-        m[mKey.getX()][mKey.getY()] = mKey.getCharacter();
+
+        m[GetRandomNumber::returnRandomNumber(2, mWidth - 2)]
+                [GetRandomNumber::returnRandomNumber(2, mWidth - 2)] = mPrize.getSign();
+        m[GetRandomNumber::returnRandomNumber(2, mWidth - 2)]
+        [GetRandomNumber::returnRandomNumber(2, mLength - 2)] = KEY;
+
+        m[mWidth - 1][mLength/2] = EXIT;
         m[mPlayer.getY()][mPlayer.getX()] = mPlayer.getCharacter();
 
         mPlayGround = m;
@@ -157,6 +252,11 @@ public:
     {
             delete [] mPlayGround[0];
             delete [] mPlayGround;
+    }
+
+    int getPlayerPoints()
+    {
+        return mPlayer.getPoints();
     }
 
 
@@ -198,20 +298,46 @@ public:
 
         move(direction);
 
-        if (mPlayGround[mPlayerMoveY][mPlayerMoveX] == mKey.getCharacter())
+        int decreaseMovePoints = -5;
+
+        mPlayer.changePoints(decreaseMovePoints);
+
+        if (mPlayGround[mPlayerMoveY][mPlayerMoveX] == KEY)
         {
-            mPlayGround[mPlayer.getY()][mPlayer.getX()] = ' ';
+            mPlayGround[mPlayer.getY()][mPlayer.getX()] = EMPTYSIGN;
+            mPlayer.setNewPosition(mPlayerMoveX, mPlayerMoveY);
+            mPlayer.takeKey();
+        }
+
+        else if (mPlayGround[mPlayerMoveY][mPlayerMoveX] == EXIT && mPlayer.hasKey())
+        {
+            mPlayGround[mPlayer.getY()][mPlayer.getX()] = EMPTYSIGN;
             mPlayer.setNewPosition(mPlayerMoveX, mPlayerMoveY);
             return 1;
         }
 
-        if ( mPlayGround[mPlayerMoveY][mPlayerMoveX] != '#')
+        else if (mPlayGround[mPlayerMoveY][mPlayerMoveX] == mPrize.getSign())
         {
-            mPlayGround[mPlayer.getY()][mPlayer.getX()] = ' ';
+            mPlayer.changePoints(mPrize.deservedPoints());
+            mPrize.changePrizeSign();
+
+            mPlayGround[GetRandomNumber::returnRandomNumber(2, mWidth - 2)]
+                    [GetRandomNumber::returnRandomNumber(2, mWidth - 2)]  = mPrize.getSign();
+
+            mPlayGround[mPlayer.getY()][mPlayer.getX()] = EMPTYSIGN;
+
+
             mPlayer.setNewPosition(mPlayerMoveX, mPlayerMoveY);
+        }
+
+        if ( (mPlayGround[mPlayerMoveY][mPlayerMoveX] == WALL) ||
+             ((!mPlayer.hasKey()) && mPlayGround[mPlayerMoveY][mPlayerMoveX] == EXIT))
+        {
             return 0;
         }
 
+        mPlayGround[mPlayer.getY()][mPlayer.getX()] = EMPTYSIGN;
+        mPlayer.setNewPosition(mPlayerMoveX, mPlayerMoveY);
         return 0;
     }
 
@@ -269,20 +395,29 @@ public:
 
         while (true)
         {
-            std::cout << "Enter direction to move : (u - up, d - down, l - left, r - right)\n";
+            std::cout << "Your points: " << A.getPlayerPoints() << '\n';
+            std::cout << "Enter direction to move : (u - up, d - down, l - left, r - right, q - quit)\n";
             std::cout << "Your input: ";
 
             char direction;
             std::cin >> direction;
 
-            endOfGame = A.play(direction);
+            if (direction == 'q')
+            {
+                break;
+            }
+            else
+            {
+                endOfGame = A.play(direction);
+            }
+
             A.vizualize();
 
             if (endOfGame)
             {
                 std::cout << "Congratulations!\n";
                 std::cout << "You win!\n";
-
+                std::cout << "Your Points: " << A.getPlayerPoints() << '\n';
                 break;
             }
         }
